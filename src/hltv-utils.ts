@@ -136,24 +136,21 @@ export const isGameEnd = (matchStats: MatchStats): boolean => {
       return;
     }
 
-    if (map.leftTeamScore === map.rightTeamScore) {
+    if (isWinScore(map.leftTeamScore, map.rightTeamScore)) {
+      leftTeamScore++;
       return;
     }
 
-    if (isWinScore(map.leftTeamScore)) {
-      leftTeamScore++;
-    }
-
-    if (isWinScore(map.rightTeamScore)) {
+    if (isWinScore(map.rightTeamScore, map.leftTeamScore)) {
       rightTeamScore++;
     }
   });
 
-  if (leftTeamScore === matchStats.bestOf / 2 + 1) {
+  if (leftTeamScore === Math.floor(matchStats.bestOf / 2) + 1) {
     return true;
   }
 
-  if (rightTeamScore === matchStats.bestOf / 2 + 1) {
+  if (rightTeamScore === Math.floor(matchStats.bestOf / 2) + 1) {
     return true;
   }
 
@@ -172,12 +169,16 @@ export const getActiveMap = (mapStatsList: MapStats[]): MapStats | null => {
   return null;
 };
 
-const isWinScore = (score: number) => {
+const isWinScore = (score: number, otherScore: number) => {
   if (isNaN(score)) {
     return false;
   }
 
   if (score < 13) {
+    return false;
+  }
+
+  if (score - otherScore < 2) {
     return false;
   }
 
@@ -187,7 +188,7 @@ const isWinScore = (score: number) => {
     return true;
   }
 
-  return overtime % 4 === 0;
+  return overtime % 3 === 0;
 };
 
 export const renderMatchStats = (matchStats: MatchStats): string =>
@@ -209,7 +210,6 @@ export const declineCookies = async (page: Page) => {
       { timeout: 10000 }
     );
     if (cookieButton) {
-      console.log("Declining cookies");
       await cookieButton.click();
     }
     await new Promise((r) => setTimeout(r, 1000));
