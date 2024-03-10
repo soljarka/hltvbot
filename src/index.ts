@@ -6,8 +6,17 @@ puppeteer.use(StealthPlugin());
 
 import "dotenv/config";
 import TelegramBot from "node-telegram-bot-api";
-import { Browser, Page } from "puppeteer";
-import { getMapStats, isGameEnd } from "./hltv-utils";
+import { Browser, ElementHandle, Page } from "puppeteer";
+import {
+  declineCookies,
+  getActiveMap,
+  getMapStats,
+  getMatchStatsAndSummary,
+  isGameEnd,
+  renderMapStats,
+  renderMatchStats,
+} from "./hltv-utils";
+import { MapStats, MatchStats } from "./types";
 
 const CONTAINERIZED_PARAMS = {
   executablePath: `/usr/bin/google-chrome-stable`,
@@ -38,7 +47,7 @@ const gamesMap: GamesMap = {};
   bot.onText(/\/stop/, async (msg, _) => {
     const chatId = msg.chat.id;
     await terminateGame(chatId);
-    bot.sendMessage(chatId, "Game stopped.");
+    await bot.sendMessage(chatId, "Game stopped.");
   });
 
   bot.onText(/\/watch (.+)/, async (msg, match) => {
@@ -84,47 +93,36 @@ const gamesMap: GamesMap = {};
     let page: Page | null = null;
 
     try {
-      bot.sendMessage(chatId, "Loading a new game...");
+      await bot.sendMessage(chatId, "Loading a new game...");
 
       const puppeteerParams = localServer
         ? { headless: true }
         : { headless: true, ...CONTAINERIZED_PARAMS };
 
-      //Launch browser
       browser = await puppeteer.launch(puppeteerParams);
       page = await browser.newPage();
       await page.goto("https://www.hltv.org/matches");
       await new Promise((r) => setTimeout(r, 2000));
 
-      //Decline cookies
-      try {
-        const cookieButton = await page.waitForSelector(
-          ".CybotCookiebotDialogBodyButtonDecline",
-          { timeout: 2000 }
-        );
-        if (cookieButton) await cookieButton.click();
-      } catch (e) {}
+      await declineCookies(page);
 
-      let mapStats = null;
+      const { matchStats, matchSummary } = await getMatchStatsAndSummary(
+        page,
+        matchId
+      );
 
-      //Watch game
-      while (gamesMap[chatId]?.shouldTerminate) {
-        const newMapStats = await getMapStats(page, matchId);
+      matchStats.maps = await getMapStats(page, matchSummary);
+      await bot.sendMessage(chatId, renderMatchStats(matchStats));
 
-        if (JSON.stringify(newMapStats) !== JSON.stringify(mapStats)) {
-          mapStats = newMapStats;
-          const text = `${mapStats.leftTeam.name} ${mapStats.leftTeam.score}:${mapStats.rightTeam.score} ${mapStats.rightTeam.name}`;
-          bot.sendMessage(chatId, text);
-        }
-
-        if (mapStats && isGameEnd(mapStats)) {
-          bot.sendMessage(chatId, "Game ended.");
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+      await watchAndPublish({
+        chatId,
+        matchStats,
+        page,
+        matchSummary,
+        bot,
+      });
     } catch (e) {
-      bot.sendMessage(chatId, "Match not found.");
+      await bot.sendMessage(chatId, "Match not found.");
       console.log(e);
     } finally {
       if (page) await page.close();
@@ -132,3 +130,33 @@ const gamesMap: GamesMap = {};
     }
   };
 })();
+
+const watchAndPublish = async (params: {
+  chatId: number;
+  matchStats: MatchStats;
+  page: Page;
+  matchSummary: ElementHandle<Element>;
+  bot: TelegramBot;
+}) => {
+  const { chatId, matchStats, page, matchSummary, bot } = params;
+
+  let previousMapStats: MapStats[] = [];
+
+  while (gamesMap[chatId]?.shouldTerminate) {
+    matchStats.maps = await getMapStats(page, matchSummary);
+
+    if (JSON.stringify(matchStats.maps) !== JSON.stringify(previousMapStats)) {
+      previousMapStats = matchStats.maps;
+      const currentMap = getActiveMap(matchStats.maps);
+      if (currentMap) {
+        await bot.sendMessage(chatId, renderMapStats(matchStats, currentMap));
+      }
+    }
+
+    if (isGameEnd(matchStats)) {
+      await bot.sendMessage(chatId, "Game ended.");
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+};
