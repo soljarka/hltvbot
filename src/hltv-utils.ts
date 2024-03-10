@@ -53,8 +53,6 @@ export const getMatchStatsAndSummary = async (
 
     await new Promise((r) => setTimeout(r, 1000));
 
-    page.screenshot({ path: "screenshot.png" });
-
     const scorebotContainer = await match.waitForSelector(
       `#matchScorebotId${matchId}`,
       {
