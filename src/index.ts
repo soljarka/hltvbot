@@ -34,10 +34,10 @@ interface GamesMap {
 
 const gamesMap: GamesMap = {};
 
-(async () => {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const localServer = process.env.LOCAL_SERVER;
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const localServer = process.env.LOCAL_SERVER;
 
+(async () => {
   if (token === undefined) {
     throw new Error("TELEGRAM_BOT_TOKEN is not defined");
   }
@@ -65,71 +65,79 @@ const gamesMap: GamesMap = {};
       shouldTerminate: true,
     };
   });
-
-  const terminateGame = async (chatId: number) => {
-    const game = gamesMap[chatId];
-    if (game === undefined) {
-      return;
-    }
-
-    if (game.shouldTerminate) {
-      console.log("Terminating game in chat", chatId);
-      game.shouldTerminate = false;
-      await game.promise;
-      console.log("Game terminated in chat", chatId);
-    }
-
-    delete gamesMap[chatId];
-  };
-
-  const watchGame = async (params: {
-    chatId: number;
-    matchId: string;
-    bot: TelegramBot;
-  }) => {
-    const { chatId, matchId, bot } = params;
-
-    let browser: Browser | null = null;
-    let page: Page | null = null;
-
-    try {
-      await bot.sendMessage(chatId, "Loading a new game...");
-
-      const puppeteerParams = localServer
-        ? { headless: true }
-        : { headless: true, ...CONTAINERIZED_PARAMS };
-
-      browser = await puppeteer.launch(puppeteerParams);
-      page = await browser.newPage();
-      await page.goto("https://www.hltv.org/matches");
-      await new Promise((r) => setTimeout(r, 2000));
-
-      await declineCookies(page);
-
-      const { matchStats, matchSummary } = await getMatchStatsAndSummary(
-        page,
-        matchId
-      );
-
-      matchStats.maps = await getMapStats(page, matchSummary);
-      await bot.sendMessage(chatId, renderMatchStats(matchStats));
-
-      await watchAndPublish({
-        chatId,
-        matchStats,
-        page,
-        matchSummary,
-        bot,
-      });
-    } catch (e) {
-      await bot.sendMessage(chatId, "Match not found.");
-      console.log(e);
-    } finally {
-      if (page) await page.close();
-      if (browser) await browser.close();
-    }
-  };
 })();
+
+const terminateGame = async (chatId: number) => {
+  const game = gamesMap[chatId];
+  if (game === undefined) {
+    return;
+  }
+
+  if (game.shouldTerminate) {
+    console.log("Terminating game in chat", chatId);
+    game.shouldTerminate = false;
+    await game.promise;
+    console.log("Game terminated in chat", chatId);
+  }
+
+  delete gamesMap[chatId];
+};
+
+const watchGame = async (params: {
+  chatId: number;
+  matchId: string;
+  bot: TelegramBot;
+}) => {
+  const { chatId, matchId, bot } = params;
+
+  let browser: Browser | null = null;
+  let page: Page | null = null;
+
+  try {
+    await bot.sendMessage(chatId, "Loading a new game...");
+
+    const result = await setupBrowser();
+    browser = result.browser;
+    page = result.page;
+
+    const { matchStats, matchSummary } = await getMatchStatsAndSummary(
+      page,
+      matchId
+    );
+
+    matchStats.maps = await getMapStats(page, matchSummary);
+    await bot.sendMessage(chatId, renderMatchStats(matchStats));
+
+    await watchAndPublish({
+      chatId,
+      matchStats,
+      page,
+      matchSummary,
+      bot,
+    });
+  } catch (e) {
+    await bot.sendMessage(chatId, "Match not found.");
+    console.log(e);
+  } finally {
+    if (page) await page.close();
+    if (browser) await browser.close();
+  }
+};
+
+const setupBrowser = async () => {
+  const puppeteerParams = localServer
+    ? { headless: true }
+    : { headless: true, ...CONTAINERIZED_PARAMS };
+
+  const browser = await puppeteer.launch(puppeteerParams);
+  const page = await browser.newPage();
+  await page.goto("https://www.hltv.org/matches");
+  await new Promise((r) => setTimeout(r, 2000));
+
+  await declineCookies(page);
+
+  return { browser, page };
+};
 
 const watchAndPublish = async (params: {
   chatId: number;
