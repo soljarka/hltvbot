@@ -7,3 +7,4 @@ services:
     image: hltvbot
     environment:
       - TELEGRAM_BOT_TOKEN
+      - LOCAL_SERVER=false
