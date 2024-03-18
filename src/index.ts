@@ -106,7 +106,7 @@ const watchGame = async (params: {
     );
 
     matchStats.maps = await getMapStats(page, matchSummary);
-    await bot.sendMessage(chatId, renderMatchStats(matchStats));
+    const message = await bot.sendMessage(chatId, renderMatchStats(matchStats));
 
     await watchAndPublish({
       chatId,
@@ -114,6 +114,7 @@ const watchGame = async (params: {
       page,
       matchSummary,
       bot,
+      message,
     });
   } catch (e) {
     await bot.sendMessage(chatId, "Match not found.");
@@ -145,8 +146,9 @@ const watchAndPublish = async (params: {
   page: Page;
   matchSummary: ElementHandle<Element>;
   bot: TelegramBot;
+  message: TelegramBot.Message;
 }) => {
-  const { chatId, matchStats, page, matchSummary, bot } = params;
+  const { chatId, matchStats, page, matchSummary, bot, message } = params;
 
   let previousMapStats: MapStats[] = [];
 
@@ -157,7 +159,10 @@ const watchAndPublish = async (params: {
       previousMapStats = matchStats.maps;
       const currentMap = getActiveMap(matchStats.maps);
       if (currentMap) {
-        await bot.sendMessage(chatId, renderMapStats(matchStats, currentMap));
+        await bot.editMessageText(
+          renderFullMessageText(matchStats, currentMap),
+          { message_id: message.message_id }
+        );
       }
     }
 
@@ -168,3 +173,11 @@ const watchAndPublish = async (params: {
     await new Promise((r) => setTimeout(r, 1000));
   }
 };
+
+const renderFullMessageText = (matchStats: MatchStats, mapStats: MapStats) =>
+  `${renderMatchStats(
+    matchStats
+  )}\n---------------------------------------------\n${renderMapStats(
+    matchStats,
+    mapStats
+  )}`;
