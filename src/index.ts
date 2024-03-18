@@ -161,7 +161,7 @@ const watchAndPublish = async (params: {
       if (currentMap) {
         await bot.editMessageText(
           renderFullMessageText(matchStats, currentMap),
-          { message_id: message.message_id }
+          { message_id: message.message_id, chat_id: chatId }
         );
       }
     }
@@ -177,7 +177,4 @@ const watchAndPublish = async (params: {
 const renderFullMessageText = (matchStats: MatchStats, mapStats: MapStats) =>
   `${renderMatchStats(
     matchStats
-  )}\n---------------------------------------------\n${renderMapStats(
-    matchStats,
-    mapStats
-  )}`;
+  )}\n------------------------------\n${renderMapStats(matchStats, mapStats)}`;
