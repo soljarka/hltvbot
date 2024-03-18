@@ -126,7 +126,9 @@ const parseTeamScore = (score: string): number | null => {
   return parsed;
 };
 
-export const isGameEnd = (matchStats: MatchStats): boolean => {
+export const getMatchScore = (
+  matchStats: MatchStats
+): { leftTeamScore: number; rightTeamScore: number } => {
   let leftTeamScore = 0;
   let rightTeamScore = 0;
   matchStats.maps.forEach((map) => {
@@ -143,7 +145,11 @@ export const isGameEnd = (matchStats: MatchStats): boolean => {
       rightTeamScore++;
     }
   });
+  return { leftTeamScore, rightTeamScore };
+};
 
+export const isGameEnd = (matchStats: MatchStats): boolean => {
+  const { leftTeamScore, rightTeamScore } = getMatchScore(matchStats);
   if (leftTeamScore === Math.floor(matchStats.bestOf / 2) + 1) {
     return true;
   }
@@ -189,10 +195,14 @@ const isWinScore = (score: number, otherScore: number) => {
   return overtime % 3 === 0;
 };
 
-export const renderMatchStats = (matchStats: MatchStats): string =>
-  `Match: ${matchStats.leftTeam} vs ${matchStats.rightTeam}.\nFormat: best of ${
-    matchStats.bestOf
-  }.\nMaps: ${matchStats.maps.map((x) => x.mapName).join(", ")}.`;
+export const renderMatchStats = (matchStats: MatchStats): string => {
+  const { leftTeamScore, rightTeamScore } = getMatchScore(matchStats);
+  return `Match: ${matchStats.leftTeam} ${leftTeamScore}:${rightTeamScore} ${
+    matchStats.rightTeam
+  }\nFormat: best of ${matchStats.bestOf}\nMaps: ${matchStats.maps
+    .map((x) => x.mapName)
+    .join(", ")}`;
+};
 
 export const renderMapStats = (
   matchStats: MatchStats,
