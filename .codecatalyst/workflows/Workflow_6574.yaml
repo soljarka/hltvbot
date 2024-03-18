@@ -1,4 +1,4 @@
-Name: Workflow_6574
+Name: build-and-push
 SchemaVersion: "1.0"
 
 # Optional - Set automatic triggers.
@@ -9,7 +9,7 @@ Triggers:
 
 # Required - Define action configurations.
 Actions:
-  Build_8b:
+  build-and-push:
     # Identifies the action. Do not modify this value.
     Identifier: aws/build@v1.0.0
     # Specifies the source and/or artifacts to pass to the action as input.
