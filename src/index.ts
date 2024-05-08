@@ -106,7 +106,7 @@ const watchGame = async (params: {
     );
 
     matchStats.maps = await getMapStats(page, matchSummary);
-    const message = await bot.sendMessage(chatId, renderMatchStats(matchStats));
+    const message = await bot.sendMessage(chatId, renderMatchStats(matchStats), {parse_mode: 'MarkdownV2'});
 
     await watchAndPublish({
       chatId,
@@ -161,7 +161,7 @@ const watchAndPublish = async (params: {
       if (currentMap) {
         await bot.editMessageText(
           renderFullMessageText(matchStats, currentMap),
-          { message_id: message.message_id, chat_id: chatId }
+          { message_id: message.message_id, chat_id: chatId, parse_mode: 'MarkdownV2' }
         );
       }
     }

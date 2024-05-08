@@ -197,7 +197,7 @@ const isWinScore = (score: number, otherScore: number) => {
 
 export const renderMatchStats = (matchStats: MatchStats): string => {
   const { leftTeamScore, rightTeamScore } = getMatchScore(matchStats);
-  return `Match: ${matchStats.leftTeam} ${leftTeamScore}:${rightTeamScore} ${
+  return `Match: ${matchStats.leftTeam} *${leftTeamScore}:${rightTeamScore}* ${
     matchStats.rightTeam
   }\nFormat: best of ${matchStats.bestOf}\nMaps: ${matchStats.maps
     .map((x) => x.mapName)
@@ -208,7 +208,7 @@ export const renderMapStats = (
   matchStats: MatchStats,
   mapStats: MapStats
 ): string => {
-  return `${mapStats.mapName}: ${matchStats.leftTeam} ${mapStats.leftTeamScore}:${mapStats.rightTeamScore} ${matchStats.rightTeam}`;
+  return `${mapStats.mapName}: ${matchStats.leftTeam} *${mapStats.leftTeamScore}:${mapStats.rightTeamScore}* ${matchStats.rightTeam}`;
 };
 
 export const declineCookies = async (page: Page) => {
