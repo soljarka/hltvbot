@@ -177,4 +177,5 @@ const watchAndPublish = async (params: {
 const renderFullMessageText = (matchStats: MatchStats, mapStats: MapStats) =>
   `${renderMatchStats(
     matchStats
-  )}\n------------------------------\n${renderMapStats(matchStats, mapStats)}`;
+  )}\n\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\n${renderMapStats(matchStats, mapStats)}`;
+
